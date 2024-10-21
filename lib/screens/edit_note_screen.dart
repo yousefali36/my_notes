@@ -43,6 +43,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
               controller: _titleController,
               decoration: InputDecoration(
                 labelText: 'Title (optional)',
+                border: OutlineInputBorder(),
               ),
             ),
             SizedBox(height: 16.0),

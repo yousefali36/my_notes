@@ -2,10 +2,10 @@
 import 'package:flutter/material.dart';
 import 'trash_screen.dart';
 
-class MoreScreen extends StatelessWidget {
+class MoreScreen extends StatefulWidget {
   final VoidCallback onToggleDarkMode;
   final bool isDarkMode;
-  final List<Map<String, String>> trash;
+  List<Map<String, String>> trash; // Change this line to make it mutable
   final Function(int) onDelete;
   final Function(int) onRestore;
 
@@ -17,6 +17,11 @@ class MoreScreen extends StatelessWidget {
     required this.onRestore,
   });
 
+  @override
+  _MoreScreenState createState() => _MoreScreenState();
+}
+
+class _MoreScreenState extends State<MoreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,9 +37,14 @@ class MoreScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => TrashScreen(
-                    trash: trash,
-                    onDelete: onDelete,
-                    onRestore: onRestore,
+                    trash: widget.trash, // Use the mutable trash list
+                    onDelete: widget.onDelete,
+                    onRestore: widget.onRestore,
+                    onRefresh: () async {
+                      // Fetch updated trash data
+                      widget.trash = await fetchUpdatedTrashData(); // Update trash data
+                      setState(() {}); // Trigger rebuild
+                    },
                   )),
                 );
               },
@@ -42,12 +52,18 @@ class MoreScreen extends StatelessWidget {
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: onToggleDarkMode,
-              child: Text(isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'),
+              onPressed: widget.onToggleDarkMode,
+              child: Text(widget.isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<List<Map<String, String>>> fetchUpdatedTrashData() async {
+    // Implement your logic to fetch updated trash data here
+    // For example, you might want to fetch it from Firestore
+    return []; // Return the updated trash data
   }
 }

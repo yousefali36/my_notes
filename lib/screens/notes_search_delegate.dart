@@ -37,8 +37,8 @@ class NotesSearchDelegate extends SearchDelegate {
       itemBuilder: (context, index) {
         final note = filteredNotes[index];
         return ListTile(
-          title: _highlightSearchTerms(context, note['content']!),
-          subtitle: Text(note['date']!),
+          title: _highlightSearchTerms(context, note['title']!),
+          subtitle: _highlightSearchTerms(context, note['content']!),
           onTap: () {
             Navigator.push(
               context,
@@ -68,26 +68,43 @@ class NotesSearchDelegate extends SearchDelegate {
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    return buildResults(context);
+    final filteredNotes = notes
+        .where((note) => note['content']!.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+
+    return ListView.builder(
+      itemCount: filteredNotes.length,
+      itemBuilder: (context, index) {
+        final note = filteredNotes[index];
+        return ListTile(
+          title: _highlightSearchTerms(context, note['title']!),
+          subtitle: _highlightSearchTerms(context, note['content']!),
+          onTap: () {
+            query = note['content']!;
+            showResults(context);
+          },
+        );
+      },
+    );
   }
 
-  Widget _highlightSearchTerms(BuildContext context, String content) {
-    final words = content.split(RegExp(r'(\s+)'));
-    final highlightedContent = words.map((word) {
-      return word.toLowerCase().contains(query.toLowerCase())
-          ? TextSpan(
-              text: word,
-              style: TextStyle(
-                backgroundColor: Colors.yellowAccent,
-              ),
-            )
-          : TextSpan(text: word);
-    }).toList();
-
+  Widget _highlightSearchTerms(BuildContext context, String text) {
+    final List<TextSpan> spans = [];
+    final List<String> parts = text.split(RegExp('(${query})', caseSensitive: false));
+    for (final part in parts) {
+      if (part.toLowerCase() == query.toLowerCase()) {
+        spans.add(TextSpan(
+          text: part,
+          style: TextStyle(backgroundColor: Colors.yellow),
+        ));
+      } else {
+        spans.add(TextSpan(text: part));
+      }
+    }
     return RichText(
       text: TextSpan(
-        children: highlightedContent,
         style: DefaultTextStyle.of(context).style,
+        children: spans,
       ),
     );
   }

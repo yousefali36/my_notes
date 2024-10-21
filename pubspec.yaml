@@ -30,20 +30,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  shared_preferences: ^2.0.6
   table_calendar: ^3.0.7
   flutter_local_notifications: ^17.2.2  # Added for notifications
   cupertino_icons: ^1.0.8
-  shared_preferences: ^2.0.13  # Add this line
+  firebase_core: ^3.6.0
+  cloud_firestore: ^5.4.4
+  device_info_plus: ^11.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # Remove or comment out the flutter_launcher_icons dependency
+  # flutter_launcher_icons: ^0.9.2
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
   flutter_lints: ^4.0.0
 
 # For information on the generic Dart part of this file, see the
@@ -87,3 +87,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Remove or comment out the flutter_icons configuration
+# flutter_icons:
+#   android: true
+#   ios: true
+#   image_path: "assets/icon/app_icon.png"

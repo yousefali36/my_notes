@@ -1,33 +1,52 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:my_notes/screens/more_screen.dart';
+import 'package:my_notes/screens/note_detail_screen.dart';
 import 'edit_note_screen.dart';
 import 'calendar_screen.dart';
 import '../widgets/note_tile.dart';
 import 'notes_search_delegate.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../main.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import '../screens/trash_screen.dart';
 
 class NotesScreen extends StatefulWidget {
   final String? initialNoteId;
+  final VoidCallback onToggleThemeMode;
 
-  NotesScreen({this.initialNoteId});
+  NotesScreen({this.initialNoteId, required this.onToggleThemeMode});
 
   @override
   _NotesScreenState createState() => _NotesScreenState();
 }
 
 class _NotesScreenState extends State<NotesScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   int _selectedIndex = 0;
-  List<Map<String, String>> notes = [];
-  List<Map<String, String>> trash = [];
-  List<Map<String, String>> filteredNotes = [];
+  List<Map<String, dynamic>> notes = [];
+  List<Map<String, dynamic>> trash = [];
+  List<Map<String, dynamic>> filteredNotes = [];
   int _notificationIdCounter = 0;
   bool isDarkMode = false;
+  String? _deviceId;
+  bool _isLoading = true; // Add a loading state
 
   @override
   void initState() {
     super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    await _getDeviceId();
+    await _fetchNotesFromFirestore();
     _updateFilteredNotes();
+    setState(() {
+      _isLoading = false; // Set loading to false after fetching notes
+    });
 
     if (widget.initialNoteId != null) {
       WidgetsBinding.instance?.addPostFrameCallback((_) {
@@ -36,27 +55,136 @@ class _NotesScreenState extends State<NotesScreen> {
     }
   }
 
+  Future<void> _getDeviceId() async {
+    final deviceInfo = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final androidInfo = await deviceInfo.androidInfo;
+      setState(() {
+        _deviceId = androidInfo.id; // Android device ID
+      });
+    } else if (Platform.isIOS) {
+      final iosInfo = await deviceInfo.iosInfo;
+      setState(() {
+        _deviceId = iosInfo.identifierForVendor; // iOS device ID
+      });
+    }
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+
+    switch (index) {
+      case 0:
+        // Already on Notes screen
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => CalendarScreen()),
+        );
+        break;
+      case 2:
+        _fetchDeletedNotes(); // Ensure the latest deleted notes are fetched
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TrashScreen(
+              trash: trash,
+              onRestore: _restoreNoteFromTrash,
+              onDelete: _permanentlyDeleteNoteFromTrash,
+              onRefresh: _fetchDeletedNotes, // Updated to remove async and return type
+            ),
+          ),
+        );
+        break;
+    }
+  }
+
+  void _toggleDarkMode() {
+    setState(() {
+      isDarkMode = !isDarkMode;
+    });
+    widget.onToggleThemeMode();
+  }
+
+  Future<void> _fetchNotesFromFirestore() async {
+    if (_deviceId == null) return; // Ensure device ID is available
+
+    try {
+      final querySnapshot = await _firestore
+          .collection('notes')
+          .where('deviceId', isEqualTo: _deviceId) // Filter by device ID
+          .where('deleted', isEqualTo: false) // Fetch only non-deleted notes
+          .get();
+      setState(() {
+        notes = querySnapshot.docs.map((doc) {
+          return {
+            'id': doc.id,
+            'title': doc['title'] ?? '',
+            'content': doc['content'] ?? '',
+            'date': doc.data().containsKey('date') ? doc['date'] : 'No Date',
+            'pinned': doc.data().containsKey('pinned') ? doc['pinned'] : 'false',
+            'statusBarPinned': doc.data().containsKey('statusBarPinned') ? doc['statusBarPinned'] : 'false',
+            'notificationId': doc.data().containsKey('notificationId') ? doc['notificationId'] : '',
+            'deviceId': doc['deviceId'], // Include device ID
+          };
+        }).toList();
+      });
+    } catch (e) {
+      print('Error fetching notes: $e');
+    }
+  }
+
+  void _addNoteToFirestore(String? title, String content) async {
+    if (_deviceId == null) return; // Ensure device ID is available
+
+    final newNote = {
+      'title': title ?? '',
+      'content': content,
+      'date': DateTime.now().toString().substring(0, 10),
+      'deviceId': _deviceId, // Save device ID
+      'pinned': 'false',
+      'statusBarPinned': 'false',
+      'notificationId': _notificationIdCounter.toString(),
+      'deleted': false, // Ensure new notes are not deleted
+    };
+
+    // Add the note to Firestore
+    final docRef = await _firestore.collection('notes').add(newNote);
+
+    // Add the note to the local list
+    setState(() {
+      notes.add({
+        ...newNote,
+        'id': docRef.id, // Add the document ID to the note
+      });
+      _updateFilteredNotes(); // Update the filtered notes list
+    });
+
+    _notificationIdCounter++;
+  }
+
+  void _updateNoteInFirestore(String id, String? title, String content) async {
+    if (_deviceId == null) return; // Ensure device ID is available
+
+    await _firestore.collection('notes').doc(id).update({
+      'title': title ?? '',
+      'content': content,
+      'date': DateTime.now().toString().substring(0, 10),
+      'deviceId': _deviceId, // Ensure device ID is consistent
+    });
+    _fetchNotesFromFirestore(); // Refresh notes list after update
+  }
+
+  void _deleteNoteFromFirestore(String id) async {
+    await _firestore.collection('notes').doc(id).update({'deleted': true});
+    _fetchNotesFromFirestore();
   }
 
   void _addNote(String? title, String content) {
-    setState(() {
-      notes.add({
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'title': title ?? '',
-        'content': content,
-        'date': DateTime.now().toString().substring(0, 10),
-        'pinned': 'false',
-        'statusBarPinned': 'false',
-        'notificationId': _notificationIdCounter.toString(),
-      });
-      _notificationIdCounter++;
-      _updateFilteredNotes();
-    });
-
+    _addNoteToFirestore(title, content);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Note added successfully!'),
@@ -66,19 +194,7 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   void _updateNote(int index, String? title, String content) {
-    setState(() {
-      notes[index] = {
-        'id': notes[index]['id']!,
-        'title': title ?? '',
-        'content': content,
-        'date': DateTime.now().toString().substring(0, 10),
-        'pinned': notes[index]['pinned'] ?? 'false',
-        'statusBarPinned': notes[index]['statusBarPinned'] ?? 'false',
-        'notificationId': notes[index]['notificationId']!,
-      };
-      _updateFilteredNotes();
-    });
-
+    _updateNoteInFirestore(notes[index]['id']!, title, content);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Note updated successfully!'),
@@ -119,51 +235,40 @@ class _NotesScreenState extends State<NotesScreen> {
     bool isPinned = notes[index]['statusBarPinned'] == 'true';
     int notificationId = int.parse(notes[index]['notificationId']!);
 
-    if (!isPinned) {
-      await _showNotification(
-        notificationId,
-        notes[index]['title']!.isEmpty ? 'Untitled Note' : notes[index]['title']!,
-        notes[index]['content']!,
-      );
-      setState(() {
-        notes[index]['statusBarPinned'] = 'true';
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Pinned to Status Bar'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } else {
+    if (isPinned) {
       await flutterLocalNotificationsPlugin.cancel(notificationId);
       setState(() {
         notes[index]['statusBarPinned'] = 'false';
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Unpinned from Status Bar'),
-          duration: Duration(seconds: 2),
-        ),
+    } else {
+      const AndroidNotificationDetails androidPlatformChannelSpecifics =
+          AndroidNotificationDetails(
+        'your_channel_id', // Use a unique channel ID
+        'Your Channel Name',
+        channelDescription: 'Your channel description',
+        importance: Importance.max,
+        priority: Priority.high,
+        ongoing: false, // Make the notification ongoing
+        showWhen: false,
       );
-    }
+      const NotificationDetails platformChannelSpecifics =
+          NotificationDetails(android: androidPlatformChannelSpecifics);
+      
+      await flutterLocalNotificationsPlugin.show(
+        notificationId,
+        notes[index]['title'],
+        notes[index]['content'],
+        platformChannelSpecifics,
+      );
 
-    _updateFilteredNotes();
+      setState(() {
+        notes[index]['statusBarPinned'] = 'true';
+      });
+    }
   }
 
   void _deleteNote(int index) {
-    if (notes[index]['statusBarPinned'] == 'true') {
-      int notificationId = int.parse(notes[index]['notificationId']!);
-      flutterLocalNotificationsPlugin.cancel(notificationId);
-    }
-
-    setState(() {
-      trash.add(notes[index]);
-      notes.removeAt(index);
-      _updateFilteredNotes();
-    });
-
+    _deleteNoteFromFirestore(notes[index]['id']!);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Note moved to trash'),
@@ -172,166 +277,91 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  void _restoreNoteFromTrash(int index) {
-    setState(() {
-      notes.add(trash[index]);
-      trash.removeAt(index);
-      _updateFilteredNotes();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Note restored'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+  void _restoreNoteFromTrash(int index) async {
+    final noteId = trash[index]['id']!;
+    await _firestore.collection('notes').doc(noteId).update({'deleted': false});
+    _fetchDeletedNotes(); // Refresh the trash list
+    _fetchNotesFromFirestore(); // Refresh active notes
   }
 
-  void _permanentlyDeleteNoteFromTrash(int index) {
-    setState(() {
-      trash.removeAt(index);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Note permanently deleted'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Future<void> _showNotification(int id, String title, String body) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'status_bar_channel',
-      'Status Bar Notifications',
-      channelDescription: 'Notifications pinned to the status bar',
-      importance: Importance.max,
-      priority: Priority.high,
-      ticker: 'ticker',
-    );
-    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
-        DarwinNotificationDetails();
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-      iOS: iOSPlatformChannelSpecifics,
-    );
-    await flutterLocalNotificationsPlugin.show(
-      id,
-      title,
-      body,
-      platformChannelSpecifics,
-      payload: id.toString(),
-    );
+  void _permanentlyDeleteNoteFromTrash(int index) async {
+    final noteId = trash[index]['id']!;
+    await _firestore.collection('notes').doc(noteId).delete();
+    _fetchDeletedNotes();
   }
 
   void _updateFilteredNotes() {
-    final pinnedNotes = notes.where((note) => note['pinned'] == 'true').toList();
-    final unpinnedNotes = notes.where((note) => note['pinned'] == 'false').toList();
-    filteredNotes = pinnedNotes + unpinnedNotes;
-  }
-
-  void _navigateToNoteById(String noteId) {
-    int index = notes.indexWhere((note) => note['id'] == noteId);
-    if (index != -1) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(notes[index]['title']!.isEmpty
-              ? 'Untitled Note'
-              : notes[index]['title']!),
-          content: Text(notes[index]['content']!),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Close'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  void _toggleDarkMode() {
     setState(() {
-      isDarkMode = !isDarkMode;
+      filteredNotes = notes;
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final List<Widget> _screens = [
-      NotesScreenBody(
-        notes: notes,
-        filteredNotes: filteredNotes,
-        onAddNote: _addNote,
-        onUpdateNote: _updateNote,
-        onPinNote: _pinNote,
-        onUnpinNote: _unpinNote,
-        onDeleteNote: _deleteNote,
-        onPinToStatusBar: _pinToStatusBar,
-      ),
-      CalendarScreen(),
-      MoreScreen(
-        onToggleDarkMode: _toggleDarkMode,
-        isDarkMode: isDarkMode,
-        trash: trash,
-        onDelete: _permanentlyDeleteNoteFromTrash,
-        onRestore: _restoreNoteFromTrash,
-      ),
-    ];
-
-    return MaterialApp(
-      theme: isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      home: Scaffold(
-        body: _screens[_selectedIndex],
-        bottomNavigationBar: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notes),
-              label: 'My Notes',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today),
-              label: 'Calendar',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.more_horiz),
-              label: 'More',
-            ),
-          ],
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
+  void _navigateToNoteById(String noteId) {
+    final note = notes.firstWhere((note) => note['id'] == noteId);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NoteDetailScreen(
+          note: note.map((key, value) => MapEntry(key, value.toString())),
+          onEdit: () {
+            // Handle edit action
+          },
+          onDelete: () {
+            // Handle delete action
+          },
+          onPin: () {
+            // Handle pin action
+          },
+          onPinToStatusBar: () {
+            // Handle pin to status bar action
+          },
         ),
       ),
-      debugShowCheckedModeBanner: false,  // Remove the debug banner
     );
   }
-}
 
-class NotesScreenBody extends StatelessWidget {
-  final List<Map<String, String>> notes;
-  final List<Map<String, String>> filteredNotes;
-  final Function(String?, String) onAddNote;
-  final Function(int, String?, String) onUpdateNote;
-  final Function(int) onPinNote;
-  final Function(int) onUnpinNote;
-  final Function(int) onDeleteNote;
-  final Function(int) onPinToStatusBar;
+  Future<void> _fetchDeletedNotes() async { // Updated to return Future<void>
+    if (_deviceId == null) return; // Ensure the device ID is available
 
-  NotesScreenBody({
-    required this.notes,
-    required this.filteredNotes,
-    required this.onAddNote,
-    required this.onUpdateNote,
-    required this.onPinNote,
-    required this.onUnpinNote,
-    required this.onDeleteNote,
-    required this.onPinToStatusBar,
-  });
+    try {
+      final QuerySnapshot snapshot = await _firestore
+          .collection('notes')
+          .where('deviceId', isEqualTo: _deviceId) // Filter by device ID
+          .where('deleted', isEqualTo: true) // Fetch only deleted notes
+          .get();
+
+      setState(() {
+        trash = snapshot.docs.map((doc) {
+          return {
+            'id': doc.id,
+            'title': doc['title'] ?? '',
+            'content': doc['content'] ?? '',
+            'date': doc['date'] ?? 'No Date',
+            'pinned': doc['pinned'] ?? 'false',
+            'statusBarPinned': doc['statusBarPinned'] ?? 'false',
+            'notificationId': doc['notificationId'] ?? '',
+            'deviceId': doc['deviceId'],
+          };
+        }).toList();
+      });
+    } catch (e) {
+      print('Error fetching deleted notes: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('My Notes'),
+        ),
+        body: Center(
+          child: CircularProgressIndicator(), // Show loading indicator
+        ),
+      );
+    }
+
     final pinnedNotes = filteredNotes.where((note) => note['pinned'] == 'true').toList();
     final unpinnedNotes = filteredNotes.where((note) => note['pinned'] == 'false').toList();
 
@@ -347,27 +377,40 @@ class NotesScreenBody extends StatelessWidget {
             onPressed: () {
               showSearch(
                 context: context,
-                delegate: NotesSearchDelegate(notes),
+                delegate: NotesSearchDelegate(
+                  notes.map((note) => note.map((key, value) => MapEntry(key, value.toString()))).toList(),
+                ),
               );
             },
           ),
         ],
       ),
-      body: filteredNotes.isEmpty
-          ? Center(child: Text('No notes available'))
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ListView(
-                children: [
-                  if (pinnedNotes.isNotEmpty)
-                    _buildSectionHeader('Pinned Notes'),
-                  ...pinnedNotes.map((note) => _buildNoteTile(context, note, notes.indexOf(note))),
-                  if (unpinnedNotes.isNotEmpty)
-                    _buildSectionHeader('Other Notes'),
-                  ...unpinnedNotes.map((note) => _buildNoteTile(context, note, notes.indexOf(note))),
-                ],
+      body: RefreshIndicator(
+        onRefresh: _refreshNotes, // Call the refresh method
+        child: filteredNotes.isEmpty
+            ? Center(child: Text('No notes available'))
+            : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ListView(
+                  children: [
+                    if (pinnedNotes.isNotEmpty)
+                      _buildSectionHeader('Pinned Notes'),
+                    ...pinnedNotes.map((note) => _buildNoteTile(
+                        context, 
+                        note.map((key, value) => MapEntry(key.toString(), value.toString())), 
+                        notes.indexOf(note)
+                    )),
+                    if (unpinnedNotes.isNotEmpty)
+                      _buildSectionHeader('Other Notes'),
+                    ...unpinnedNotes.map((note) => _buildNoteTile(
+                        context, 
+                        note.map((key, value) => MapEntry(key, value.toString())), // Convert values to String
+                        notes.indexOf(note)
+                    )),
+                  ],
+                ),
               ),
-            ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(
@@ -376,11 +419,30 @@ class NotesScreenBody extends StatelessWidget {
           );
 
           if (result != null && result is Map<String, String>) {
-            onAddNote(result['title'], result['content']!);
+            _addNote(result['title'], result['content']!);
           }
         },
         child: Icon(Icons.add),
         backgroundColor: Colors.blueAccent,
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.note),
+            label: 'Notes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Calendar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.more_horiz),
+            label: 'More',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blueAccent,
+        onTap: _onItemTapped,
       ),
     );
   }
@@ -400,16 +462,22 @@ class NotesScreenBody extends StatelessWidget {
   }
 
   Widget _buildNoteTile(BuildContext context, Map<String, String> note, int index) {
+    // Ensure the index is valid before accessing the list
+    if (index < 0 || index >= notes.length) {
+      print('Invalid index: $index');
+      return SizedBox.shrink(); // Return an empty widget if the index is invalid
+    }
+
     return NoteTile(
       title: note['title']!,
       date: note['date']!,
       content: note['content']!,
       isPinned: note['pinned'] == 'true',
       isStatusBarPinned: note['statusBarPinned'] == 'true',
-      onPin: () => onPinNote(index),
-      onUnpin: () => onUnpinNote(index),
-      onDelete: () => onDeleteNote(index),
-      onPinToStatusBar: () => onPinToStatusBar(index),
+      onPin: () => _pinNote(index),
+      onUnpin: () => _unpinNote(index),
+      onDelete: () => _deleteNote(index),
+      onPinToStatusBar: () => _pinToStatusBar(index),
       onTap: () async {
         final result = await Navigator.push(
           context,
@@ -422,9 +490,20 @@ class NotesScreenBody extends StatelessWidget {
         );
 
         if (result != null && result is Map<String, String>) {
-          onUpdateNote(index, result['title'], result['content']!);
+          _updateNoteInFirestore(note['id']!, result['title'], result['content']!);
         }
       },
     );
+  }
+
+  Future<void> _refreshNotes() async {
+    setState(() {
+      _isLoading = true; // Show loading indicator during refresh
+    });
+    await _fetchNotesFromFirestore(); // Fetch the latest notes
+    _updateFilteredNotes(); // Update the filtered notes list
+    setState(() {
+      _isLoading = false; // Hide loading indicator after refresh
+    });
   }
 }
