@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-<<<<<<< HEAD
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'edit_note_screen.dart';
-=======
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
 
 class CalendarScreen extends StatefulWidget {
   @override
@@ -16,7 +13,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-<<<<<<< HEAD
   Map<DateTime, List<String>> _notes = {};
 
   @override
@@ -24,8 +20,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     super.initState();
     _loadNotes();
   }
-=======
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
 
   @override
   Widget build(BuildContext context) {
@@ -45,21 +39,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
               selectedDayPredicate: (day) {
                 return isSameDay(_selectedDay, day);
               },
-<<<<<<< HEAD
               eventLoader: (day) {
                 return _notes[day] ?? [];
               },
-=======
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
               onDaySelected: (selectedDay, focusedDay) {
                 setState(() {
                   _selectedDay = selectedDay;
                   _focusedDay = focusedDay;
                 });
-<<<<<<< HEAD
                 _showAddNoteDialog(selectedDay);
-=======
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
               },
               onFormatChanged: (format) {
                 if (_calendarFormat != format) {
@@ -78,7 +66,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 'Selected date: ${_selectedDay!.toLocal()}'.split(' ')[0],
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-<<<<<<< HEAD
             if (_selectedDay != null && _notes[_selectedDay] != null)
               Expanded(
                 child: ListView.builder(
@@ -91,14 +78,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   },
                 ),
               ),
-=======
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
           ],
         ),
       ),
     );
   }
-<<<<<<< HEAD
 
   void _showAddNoteDialog(DateTime selectedDay) {
     showDialog(
@@ -221,6 +205,4 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }));
     await prefs.setString('notes', notesString);
   }
-=======
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
 }

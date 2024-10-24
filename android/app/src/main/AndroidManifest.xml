@@ -2,12 +2,8 @@
     <application
         android:label="my_notes"
         android:name="${applicationName}"
-<<<<<<< HEAD
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true"> <!-- Enable OnBackInvokedCallback -->
-=======
-        android:icon="@mipmap/ic_launcher">
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -47,8 +43,5 @@
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
-<<<<<<< HEAD
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-=======
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
 </manifest>

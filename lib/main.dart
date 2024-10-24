@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import 'package:flutter/material.dart';
 import 'screens/notes_screen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -70,22 +69,10 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-=======
-// lib/main.dart
-import 'package:flutter/material.dart';
-import 'screens/notes_screen.dart';
-
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Notes App',
-<<<<<<< HEAD
       navigatorKey: navigatorKey,
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -111,12 +98,6 @@ class MyApp extends StatelessWidget {
       darkTheme: ThemeData.dark(),
       themeMode: _themeMode,
       home: NotesScreen(onToggleThemeMode: _toggleThemeMode),
-=======
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: NotesScreen(),
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
       debugShowCheckedModeBanner: false,
     );
   }

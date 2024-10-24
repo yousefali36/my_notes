@@ -23,7 +23,6 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   }
 
   @override
-<<<<<<< HEAD
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
@@ -31,8 +30,6 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   }
 
   @override
-=======
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -46,10 +43,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
               controller: _titleController,
               decoration: InputDecoration(
                 labelText: 'Title (optional)',
-<<<<<<< HEAD
                 border: OutlineInputBorder(),
-=======
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
               ),
             ),
             SizedBox(height: 16.0),

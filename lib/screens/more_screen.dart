@@ -1,6 +1,5 @@
 // lib/screens/more_screen.dart
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'trash_screen.dart';
 
 class MoreScreen extends StatefulWidget {
@@ -23,10 +22,6 @@ class MoreScreen extends StatefulWidget {
 }
 
 class _MoreScreenState extends State<MoreScreen> {
-=======
-
-class MoreScreen extends StatelessWidget {
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,7 +29,6 @@ class MoreScreen extends StatelessWidget {
         title: Text('More Options'),
       ),
       body: Center(
-<<<<<<< HEAD
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -72,10 +66,4 @@ class MoreScreen extends StatelessWidget {
     // For example, you might want to fetch it from Firestore
     return []; // Return the updated trash data
   }
-=======
-        child: Text('This is the More Screen. Add more options here.'),
-      ),
-    );
-  }
->>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
 }
