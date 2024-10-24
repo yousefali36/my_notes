@@ -5,8 +5,12 @@ class NoteTile extends StatelessWidget {
   final String date;
   final String content;
   final bool isPinned;
+<<<<<<< HEAD
   final bool isStatusBarPinned;
   final VoidCallback onTap;
+=======
+  final VoidCallback onTap;  // Add this line
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
   final VoidCallback onPin;
   final VoidCallback onUnpin;
   final VoidCallback onDelete;
@@ -17,8 +21,12 @@ class NoteTile extends StatelessWidget {
     required this.date,
     required this.content,
     required this.isPinned,
+<<<<<<< HEAD
     required this.isStatusBarPinned,
     required this.onTap,
+=======
+    required this.onTap,  // Add this line
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
     required this.onPin,
     required this.onUnpin,
     required this.onDelete,
@@ -27,6 +35,7 @@ class NoteTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8.0),
       elevation: 2.0,
@@ -73,6 +82,36 @@ class NoteTile extends StatelessWidget {
           );
         },
       ),
+=======
+    return ListTile(
+      onTap: onTap,  // Add this line
+      title: Text(title.isEmpty ? 'Untitled Note' : title),
+      subtitle: Text(content),
+      trailing: IconButton(
+        icon: Icon(isPinned ? Icons.pin_drop : Icons.pin_drop_outlined),
+        onPressed: isPinned ? onUnpin : onPin,
+      ),
+      onLongPress: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (context) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.pin_drop),
+                title: Text('Pin to Status Bar'),
+                onTap: onPinToStatusBar,
+              ),
+              ListTile(
+                leading: Icon(Icons.delete),
+                title: Text('Delete Note'),
+                onTap: onDelete,
+              ),
+            ],
+          ),
+        );
+      },
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
     );
   }
 }

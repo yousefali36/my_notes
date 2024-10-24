@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -19,11 +20,22 @@ class NotesScreen extends StatefulWidget {
 
   NotesScreen({this.initialNoteId, required this.onToggleThemeMode});
 
+=======
+import 'package:flutter/material.dart';
+import 'package:my_notes/screens/more_screen.dart';
+import 'edit_note_screen.dart';
+import 'calendar_screen.dart';
+import '../widgets/note_tile.dart';
+import 'notes_search_delegate.dart';  // Ensure this import is correct
+
+class NotesScreen extends StatefulWidget {
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
   @override
   _NotesScreenState createState() => _NotesScreenState();
 }
 
 class _NotesScreenState extends State<NotesScreen> {
+<<<<<<< HEAD
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   int _selectedIndex = 0;
   List<Map<String, dynamic>> notes = [];
@@ -33,10 +45,16 @@ class _NotesScreenState extends State<NotesScreen> {
   bool isDarkMode = false;
   String? _deviceId;
   bool _isLoading = true; // Add a loading state
+=======
+  int _selectedIndex = 0;
+  List<Map<String, String>> notes = [];
+  List<Map<String, String>> filteredNotes = [];
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _initializeApp();
   }
 
@@ -68,12 +86,16 @@ class _NotesScreenState extends State<NotesScreen> {
         _deviceId = iosInfo.identifierForVendor; // iOS device ID
       });
     }
+=======
+    _updateFilteredNotes();
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
   }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+<<<<<<< HEAD
 
     switch (index) {
       case 0:
@@ -185,6 +207,21 @@ class _NotesScreenState extends State<NotesScreen> {
 
   void _addNote(String? title, String content) {
     _addNoteToFirestore(title, content);
+=======
+  }
+
+  void _addNote(String? title, String content) {
+    setState(() {
+      notes.add({
+        'title': title ?? '',
+        'content': content,
+        'date': DateTime.now().toString().substring(0, 10),
+        'pinned': 'false',
+      });
+      _updateFilteredNotes();
+    });
+
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Note added successfully!'),
@@ -194,7 +231,20 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   void _updateNote(int index, String? title, String content) {
+<<<<<<< HEAD
     _updateNoteInFirestore(notes[index]['id']!, title, content);
+=======
+    setState(() {
+      notes[index] = {
+        'title': title ?? '',
+        'content': content,
+        'date': DateTime.now().toString().substring(0, 10),
+        'pinned': notes[index]['pinned'] ?? 'false',
+      };
+      _updateFilteredNotes();
+    });
+
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Note updated successfully!'),
@@ -231,6 +281,7 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+<<<<<<< HEAD
   void _pinToStatusBar(int index) async {
     bool isPinned = notes[index]['statusBarPinned'] == 'true';
     int notificationId = int.parse(notes[index]['notificationId']!);
@@ -272,11 +323,29 @@ class _NotesScreenState extends State<NotesScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Note moved to trash'),
+=======
+  void _pinToStatusBar(int index) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Pinned to Status Bar')),
+    );
+  }
+
+  void _deleteNote(int index) {
+    setState(() {
+      notes.removeAt(index);
+      _updateFilteredNotes();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Note deleted'),
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
         duration: Duration(seconds: 2),
       ),
     );
   }
 
+<<<<<<< HEAD
   void _restoreNoteFromTrash(int index) async {
     final noteId = trash[index]['id']!;
     await _firestore.collection('notes').doc(noteId).update({'deleted': false});
@@ -347,10 +416,17 @@ class _NotesScreenState extends State<NotesScreen> {
     } catch (e) {
       print('Error fetching deleted notes: $e');
     }
+=======
+  void _updateFilteredNotes() {
+    final pinnedNotes = notes.where((note) => note['pinned'] == 'true').toList();
+    final unpinnedNotes = notes.where((note) => note['pinned'] == 'false').toList();
+    filteredNotes = pinnedNotes + unpinnedNotes;
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
   }
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
@@ -362,6 +438,70 @@ class _NotesScreenState extends State<NotesScreen> {
       );
     }
 
+=======
+    final List<Widget> _screens = [
+      NotesScreenBody(
+        notes: notes,
+        filteredNotes: filteredNotes,
+        onAddNote: _addNote,
+        onUpdateNote: _updateNote,  // Added this line to update note
+        onPinNote: _pinNote,
+        onUnpinNote: _unpinNote,
+        onDeleteNote: _deleteNote,
+        onPinToStatusBar: _pinToStatusBar,
+      ),
+      CalendarScreen(),
+      MoreScreen(),
+    ];
+
+    return Scaffold(
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notes),
+            label: 'My Notes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Calendar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.more_horiz),
+            label: 'More',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+      ),
+    );
+  }
+}
+
+class NotesScreenBody extends StatelessWidget {
+  final List<Map<String, String>> notes;
+  final List<Map<String, String>> filteredNotes;
+  final Function(String?, String) onAddNote;
+  final Function(int, String?, String) onUpdateNote;  // Added this for updating notes
+  final Function(int) onPinNote;
+  final Function(int) onUnpinNote;
+  final Function(int) onDeleteNote;
+  final Function(int) onPinToStatusBar;
+
+  NotesScreenBody({
+    required this.notes,
+    required this.filteredNotes,
+    required this.onAddNote,
+    required this.onUpdateNote,  // Added this for updating notes
+    required this.onPinNote,
+    required this.onUnpinNote,
+    required this.onDeleteNote,
+    required this.onPinToStatusBar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
     final pinnedNotes = filteredNotes.where((note) => note['pinned'] == 'true').toList();
     final unpinnedNotes = filteredNotes.where((note) => note['pinned'] == 'false').toList();
 
@@ -377,14 +517,19 @@ class _NotesScreenState extends State<NotesScreen> {
             onPressed: () {
               showSearch(
                 context: context,
+<<<<<<< HEAD
                 delegate: NotesSearchDelegate(
                   notes.map((note) => note.map((key, value) => MapEntry(key, value.toString()))).toList(),
                 ),
+=======
+                delegate: NotesSearchDelegate(notes),  // Ensure NotesSearchDelegate is correctly defined and imported
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
               );
             },
           ),
         ],
       ),
+<<<<<<< HEAD
       body: RefreshIndicator(
         onRefresh: _refreshNotes, // Call the refresh method
         child: filteredNotes.isEmpty
@@ -411,6 +556,23 @@ class _NotesScreenState extends State<NotesScreen> {
                 ),
               ),
       ),
+=======
+      body: filteredNotes.isEmpty
+          ? Center(child: Text('No notes available'))
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ListView(
+                children: [
+                  if (pinnedNotes.isNotEmpty)
+                    _buildSectionHeader('Pinned Notes'),
+                  ...pinnedNotes.map((note) => _buildNoteTile(context, note, notes.indexOf(note))),
+                  if (unpinnedNotes.isNotEmpty)
+                    _buildSectionHeader('Other Notes'),
+                  ...unpinnedNotes.map((note) => _buildNoteTile(context, note, notes.indexOf(note))),
+                ],
+              ),
+            ),
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(
@@ -419,12 +581,17 @@ class _NotesScreenState extends State<NotesScreen> {
           );
 
           if (result != null && result is Map<String, String>) {
+<<<<<<< HEAD
             _addNote(result['title'], result['content']!);
+=======
+            onAddNote(result['title'], result['content']!);
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
           }
         },
         child: Icon(Icons.add),
         backgroundColor: Colors.blueAccent,
       ),
+<<<<<<< HEAD
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -444,6 +611,8 @@ class _NotesScreenState extends State<NotesScreen> {
         selectedItemColor: Colors.blueAccent,
         onTap: _onItemTapped,
       ),
+=======
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
     );
   }
 
@@ -462,22 +631,32 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   Widget _buildNoteTile(BuildContext context, Map<String, String> note, int index) {
+<<<<<<< HEAD
     // Ensure the index is valid before accessing the list
     if (index < 0 || index >= notes.length) {
       print('Invalid index: $index');
       return SizedBox.shrink(); // Return an empty widget if the index is invalid
     }
 
+=======
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
     return NoteTile(
       title: note['title']!,
       date: note['date']!,
       content: note['content']!,
       isPinned: note['pinned'] == 'true',
+<<<<<<< HEAD
       isStatusBarPinned: note['statusBarPinned'] == 'true',
       onPin: () => _pinNote(index),
       onUnpin: () => _unpinNote(index),
       onDelete: () => _deleteNote(index),
       onPinToStatusBar: () => _pinToStatusBar(index),
+=======
+      onPin: () => onPinNote(index),
+      onUnpin: () => onUnpinNote(index),
+      onDelete: () => onDeleteNote(index),
+      onPinToStatusBar: () => onPinToStatusBar(index),
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
       onTap: () async {
         final result = await Navigator.push(
           context,
@@ -490,11 +669,16 @@ class _NotesScreenState extends State<NotesScreen> {
         );
 
         if (result != null && result is Map<String, String>) {
+<<<<<<< HEAD
           _updateNoteInFirestore(note['id']!, result['title'], result['content']!);
+=======
+          onUpdateNote(index, result['title'], result['content']!);  // Updating the note at the given index
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
         }
       },
     );
   }
+<<<<<<< HEAD
 
   Future<void> _refreshNotes() async {
     setState(() {
@@ -506,4 +690,6 @@ class _NotesScreenState extends State<NotesScreen> {
       _isLoading = false; // Hide loading indicator after refresh
     });
   }
+=======
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
 }

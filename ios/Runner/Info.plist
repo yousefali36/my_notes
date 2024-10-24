@@ -45,6 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+<<<<<<< HEAD
 	<key>CFBundleIcons</key>
 	<dict>
 		<key>CFBundlePrimaryIcon</key>
@@ -69,5 +70,7 @@
 			<false/>
 		</dict>
 	</dict>
+=======
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
 </dict>
 </plist>

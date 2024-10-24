@@ -37,8 +37,13 @@ class NotesSearchDelegate extends SearchDelegate {
       itemBuilder: (context, index) {
         final note = filteredNotes[index];
         return ListTile(
+<<<<<<< HEAD
           title: _highlightSearchTerms(context, note['title']!),
           subtitle: _highlightSearchTerms(context, note['content']!),
+=======
+          title: _highlightSearchTerms(context, note['content']!),
+          subtitle: Text(note['date']!),
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
           onTap: () {
             Navigator.push(
               context,
@@ -68,6 +73,7 @@ class NotesSearchDelegate extends SearchDelegate {
 
   @override
   Widget buildSuggestions(BuildContext context) {
+<<<<<<< HEAD
     final filteredNotes = notes
         .where((note) => note['content']!.toLowerCase().contains(query.toLowerCase()))
         .toList();
@@ -109,3 +115,29 @@ class NotesSearchDelegate extends SearchDelegate {
     );
   }
 }
+=======
+    return buildResults(context);
+  }
+
+  Widget _highlightSearchTerms(BuildContext context, String content) {
+    final words = content.split(RegExp(r'(\s+)'));
+    final highlightedContent = words.map((word) {
+      return word.toLowerCase().contains(query.toLowerCase())
+          ? TextSpan(
+              text: word,
+              style: TextStyle(
+                backgroundColor: Colors.yellowAccent,
+              ),
+            )
+          : TextSpan(text: word);
+    }).toList();
+
+    return RichText(
+      text: TextSpan(
+        children: highlightedContent,
+        style: DefaultTextStyle.of(context).style,
+      ),
+    );
+  }
+}
+>>>>>>> a1b95160833eedcaaa11b4eb71e252f762041fd6
